@@ -1,80 +1,90 @@
-import { View, Text, Image, StyleSheet, Linking, TouchableOpacity } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, TextInput, Button, FlatList, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import TarefaItem from './components/TarefaItem';
 
 export default function App() {
-  const usuario = {
-    nome: "Gabriel Fidalgo",
-    bio: "Desenvolvedor Fullstack, Flutter e aspirante de Design Patterns",
-    curso: "Ciência da computação - 3° Semestre",
-    avatar: "https://avatars.githubusercontent.com/u/99514428?v=4",
-    links: [{nomeLink: 'GitHub', url: 'https://github.com/FidalgoGab'}, {nomeLink: 'LinkedIn', url: 'https://www.linkedin.com/in/gabriel-fidalgo-938a38248'}]
+  const [tarefas, setTarefas] = useState([]);
+  const [texto, setTexto] = useState('');
+  // 📖 Carregar ao abrir o app
+  useEffect(() => {
+    carregarTarefas();
+  }, []);
+  const carregarTarefas = async () => {
+    const dados = await AsyncStorage.getItem('tarefas');
+    if (dados) setTarefas(JSON.parse(dados));
   };
+  const salvarTarefas = async (lista) => {
+    await AsyncStorage.setItem('tarefas', JSON.stringify(lista));
+  };
+  const adicionarTarefa = () => {
+    if (!texto.trim()) return;
+    const nova = { id: Date.now().toString(), texto, ativo: false };
+    const novaLista = [...tarefas, nova];
+    setTarefas(novaLista);
+    salvarTarefas(novaLista);
+    setTexto('');
+  };
+  const removerTarefa = (id) => {
+    const novaLista = tarefas.filter((t) => t.id !== id);
+    setTarefas(novaLista);
+    salvarTarefas(novaLista);
+  };
+  const atualizarTarefa = (id) => {
+    const novaLista = tarefas.map((e) => {
+      if(e.id == id) {
+        e.ativo = !e.ativo;
+      }
+
+      return e;
+    })
+    setTarefas(novaLista);
+    salvarTarefas(novaLista);
+  }
+  const limparTudo = async () =>  {
+    setTarefas([]);
+    await AsyncStorage.clear();
+  }
   return (
     <View style={styles.container}>
-      {/* Avatar */}
-      <Image
-        source={{ uri: usuario.avatar }}
-        style={styles.avatar}
+      <TextInput
+        value={texto}
+        onChangeText={setTexto}
+        placeholder="Nova tarefa..."
+        style={styles.input}
       />
-      {/* Nome */}
-      <Text style={styles.nome}>{usuario.nome}</Text>
-      {/* Bio */}
-      <Text style={styles.bio}>{usuario.bio}</Text>
-      {/* Stats */}
-      <View style={styles.stats}>
-        <Text style={styles.stat}>👥 {usuario.curso}</Text>
+      <Button title="Adicionar ➕" onPress={adicionarTarefa} />
+      <View style={styles.info}>
+        <Text style={styles.texto}>Total de {tarefas.length} tarefa(s)</Text>
+        <TouchableOpacity onPress={() => limparTudo()}>
+          <Text style={styles.texto}>Limpar tudo</Text>
+        </TouchableOpacity>
       </View>
-      <View style={styles.urlContainer}>
-        {usuario.links.map((a, index) => <TouchableOpacity key={index} onPress={() => Linking.openURL(a.url)}><Text key={index} style={styles.url}>{a.nomeLink}</Text></TouchableOpacity>)}
-      </View>
+      <FlatList
+        data={tarefas}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <TarefaItem 
+            tarefa={item} 
+            onRemover={removerTarefa} 
+            onAtualizar={atualizarTarefa}
+          />
+        )}
+      />
     </View>
   );
 }
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1, padding: 40, paddingTop: 60 },
+  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8,
+           padding: 10, marginBottom: 10, fontSize: 16 },
+  info: {
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0a0a0a',
-    padding: 20,
-  },
-  avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 3,
-    borderColor: '#E1306C',
-    marginBottom: 16,
-  },
-  nome: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 8,
-  },
-  bio: {
-    width: '70%',
-    fontSize: 14,
-    color: '#aaa',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  stats: {
-    backgroundColor: '#1a1a1a',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  stat: {
-    color: '#fff',
-    fontSize: 14,
-  },
-  url: {
-    color: '#3355ee',
-    fontSize: 18,
-    textAlign: 'center'
-  },
-  urlContainer: {
-    width: '100%',
+    justifyContent: 'space-between',
+    flexDirection: 'row',
     marginTop: 16,
-  }
+    marginBottom: 16,
+  },
+  texto: { fontSize: 16 },
 });
