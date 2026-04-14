@@ -1,80 +1,164 @@
-import { View, Text, Image, StyleSheet, Linking, TouchableOpacity } from 'react-native';
+import { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from "react-native";
 
 export default function App() {
-  const usuario = {
-    nome: "Gabriel Fidalgo",
-    bio: "Desenvolvedor Fullstack, Flutter e aspirante de Design Patterns",
-    curso: "Ciência da computação - 3° Semestre",
-    avatar: "https://avatars.githubusercontent.com/u/99514428?v=4",
-    links: [{nomeLink: 'GitHub', url: 'https://github.com/FidalgoGab'}, {nomeLink: 'LinkedIn', url: 'https://www.linkedin.com/in/gabriel-fidalgo-938a38248'}]
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [senhaVisivel, setSenhaVisivel] = useState(false);
+  const [confirmarSenha, setConfirmarSenha] = useState("");
+  const [confirmarSenhaVisivel, setConfirmarSenhaVisivel] = useState(false);
+  const [erros, setErros] = useState({});
+  const [corBtn, setCorBtn] = useState("#6c47ff");
+  const validar = () => {
+    const novosErros = {};
+    if(!nome.trim()) novosErros.nome = "Informe o nome";
+    if (!email.includes("@")) novosErros.email = "E-mail inválido";
+    if (senha.length < 6)
+      novosErros.senha = "Senha deve ter mínimo 6 caracteres";
+    if(senha != confirmarSenha)
+      novosErros.confirmar = "As senhas não batem";
+    setErros(novosErros);
+    return Object.keys(novosErros).length === 0;
   };
+  const handleLogin = () => {
+    if (validar()) {
+      Alert.alert("Login realizado!", `Bem-vindo, ${nome}! 🎉`);
+    }
+  };
+
+  useEffect(() => {
+    const novosErros = {};
+    
+    if(!nome.trim()) novosErros.nome = "Informe o nome";
+    if (!email.includes("@")) novosErros.email = "E-mail inválido";
+    if (senha.length < 6)
+      novosErros.senha = "Senha deve ter mínimo 6 caracteres";
+    if(senha != confirmarSenha)
+      novosErros.confirmar = "As senhas não batem";
+
+    if (Object.keys(novosErros).length === 0) {
+      setCorBtn("green");
+    } else {
+      setCorBtn("#6c47ff");
+    }
+  }, [nome, email, confirmarSenha, senha]);
   return (
-    <View style={styles.container}>
-      {/* Avatar */}
-      <Image
-        source={{ uri: usuario.avatar }}
-        style={styles.avatar}
-      />
-      {/* Nome */}
-      <Text style={styles.nome}>{usuario.nome}</Text>
-      {/* Bio */}
-      <Text style={styles.bio}>{usuario.bio}</Text>
-      {/* Stats */}
-      <View style={styles.stats}>
-        <Text style={styles.stat}>👥 {usuario.curso}</Text>
-      </View>
-      <View style={styles.urlContainer}>
-        {usuario.links.map((a, index) => <TouchableOpacity key={index} onPress={() => Linking.openURL(a.url)}><Text key={index} style={styles.url}>{a.nomeLink}</Text></TouchableOpacity>)}
-      </View>
-    </View>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <ScrollView keyboardShouldPersistTaps="handled">
+        <Text style={styles.titulo}>🔐 Login</Text>
+        <TextInput
+          placeholder="Nome"
+          value={nome}
+          onChangeText={setNome}
+          style={styles.input}
+        />
+        {erros.nome && <Text style={styles.erro}>{erros.nome}</Text>}
+        <TextInput
+          placeholder="E-mail"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          style={styles.input}
+        />
+        {erros.email && <Text style={styles.erro}>{erros.email}</Text>}
+        <View style={styles.senhaContainer}>
+          <TextInput
+            placeholder="Senha"
+            value={senha}
+            onChangeText={setSenha}
+            secureTextEntry={!senhaVisivel}
+            style={[styles.input, { flex: 1, marginBottom: 0 }]}
+          />
+          <Text
+            onPress={() => setSenhaVisivel(!senhaVisivel)}
+            style={styles.olho}
+          >
+            {senhaVisivel ? "🙈" : "👁️"}
+          </Text>
+        </View>
+          {erros.senha && <Text style={styles.erro}>{erros.senha}</Text>}
+        <View style={styles.senhaContainer}>
+          <TextInput
+            placeholder="Confirmar senha"
+            value={confirmarSenha}
+            onChangeText={setConfirmarSenha}
+            secureTextEntry={!confirmarSenhaVisivel}
+            style={[styles.input, { flex: 1, marginBottom: 0 }]}
+          />
+          <Text
+            onPress={() => setConfirmarSenhaVisivel(!confirmarSenhaVisivel)}
+            style={styles.olho}
+          >
+            {confirmarSenhaVisivel ? "🙈" : "👁️"}
+          </Text>
+        </View>
+          {erros.confirmar && <Text style={styles.erro}>{erros.confirmar}</Text>}
+
+        <TouchableOpacity
+          style={{ ...styles.botao, backgroundColor: corBtn }}
+          onPress={handleLogin}
+        >
+          <Text style={styles.botaoTexto}>Entrar</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0a0a0a',
-    padding: 20,
+    justifyContent: "center",
+    padding: 24,
+    backgroundColor: "#f5f5f5",
   },
-  avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 3,
-    borderColor: '#E1306C',
-    marginBottom: 16,
+  titulo: {
+    fontSize: 32,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 32,
+    color: "#333",
   },
-  nome: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#fff',
+  input: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 8,
+    fontSize: 16,
+  },
+  senhaContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 10,
     marginBottom: 8,
   },
-  bio: {
-    width: '70%',
-    fontSize: 14,
-    color: '#aaa',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  stats: {
-    backgroundColor: '#1a1a1a',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  stat: {
-    color: '#fff',
-    fontSize: 14,
-  },
-  url: {
-    color: '#3355ee',
-    fontSize: 18,
-    textAlign: 'center'
-  },
-  urlContainer: {
-    width: '100%',
+  olho: { padding: 14, fontSize: 20 },
+  erro: { color: "red", marginBottom: 8, marginLeft: 4 },
+  botao: {
+    backgroundColor: "#6c47ff",
+    borderRadius: 10,
+    padding: 16,
     marginTop: 16,
-  }
+    alignItems: "center",
+  },
+  botaoTexto: { color: "#fff", fontSize: 18, fontWeight: "bold" },
 });
