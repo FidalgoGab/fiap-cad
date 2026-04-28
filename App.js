@@ -1,80 +1,273 @@
-import { View, Text, Image, StyleSheet, Linking, TouchableOpacity } from 'react-native';
-
+import { useState, useRef, useEffect } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Switch,
+  ScrollView,
+  Alert,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
+// --- Funções de máscara ---
+const formatarCPF = (v) =>
+  v
+    .replace(/\D/g, "")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})/, "$1-$2")
+    .slice(0, 14);
+const formatarTel = (v) =>
+  v
+    .replace(/\D/g, "")
+    .replace(/(\d{2})(\d)/, "($1) $2")
+    .replace(/(\d{5})(\d{1,4})/, "$1-$2")
+    .slice(0, 15);
+function validateEmail(email) {
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return regex.test(email);
+}
+// --- Perfis disponíveis ---
+const PERFIS = ["Estudante", "Profissional", "Freelancer"];
 export default function App() {
-  const usuario = {
-    nome: "Gabriel Fidalgo",
-    bio: "Desenvolvedor Fullstack, Flutter e aspirante de Design Patterns",
-    curso: "Ciência da computação - 3° Semestre",
-    avatar: "https://avatars.githubusercontent.com/u/99514428?v=4",
-    links: [{nomeLink: 'GitHub', url: 'https://github.com/FidalgoGab'}, {nomeLink: 'LinkedIn', url: 'https://www.linkedin.com/in/gabriel-fidalgo-938a38248'}]
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [tel, setTel] = useState("");
+  const [psw, setPsw] = useState("");
+  const [showPsw, setShowPsw] = useState(false);
+  const [perfil, setPerfil] = useState("");
+  const [termos, setTermos] = useState(false);
+  const [erros, setErros] = useState({});
+  const [carregando, setCarregando] = useState(false);
+  const emailRef = useRef(null);
+  const cpfRef = useRef(null);
+  const telRef = useRef(null);
+
+  const [corBtn, setCorBtn] = useState("#6c47ff");
+
+  const validar = () => {
+    const e = {};
+    if (!nome.trim()) e.nome = "Nome obrigatório";
+    if (!validateEmail(email)) e.email = "E-mail inválido";
+    if (psw.length < 6) e.senha = "Senha deve ter mínimo 6 caracteres";
+    if (cpf.length < 14) e.cpf = "CPF incompleto";
+    if (tel.length < 14) e.tel = "Telefone incompleto";
+    if (!perfil) e.perfil = "Escolha um perfil";
+    if (!termos) e.termos = "Aceite os termos para continuar";
+    setErros(e);
+    return Object.keys(e).length === 0;
   };
-  return (
-    <View style={styles.container}>
-      {/* Avatar */}
-      <Image
-        source={{ uri: usuario.avatar }}
-        style={styles.avatar}
-      />
-      {/* Nome */}
-      <Text style={styles.nome}>{usuario.nome}</Text>
-      {/* Bio */}
-      <Text style={styles.bio}>{usuario.bio}</Text>
-      {/* Stats */}
-      <View style={styles.stats}>
-        <Text style={styles.stat}>👥 {usuario.curso}</Text>
-      </View>
-      <View style={styles.urlContainer}>
-        {usuario.links.map((a, index) => <TouchableOpacity key={index} onPress={() => Linking.openURL(a.url)}><Text key={index} style={styles.url}>{a.nomeLink}</Text></TouchableOpacity>)}
-      </View>
+
+  useEffect(() => {
+    const novosErros = {};
+
+    if (!nome.trim()) novosErros.nome = "Informe o nome";
+    if (!validateEmail(email)) novosErros.email = "E-mail inválido";
+    if (psw.length < 6) novosErros.senha = "Senha deve ter mínimo 6 caracteres";
+    if (cpf.length < 14) novosErros.cpf = "CPF incompleto";
+    if (tel.length < 14) novosErros.tel = "Telefone incompleto";
+    if (!perfil) novosErros.perfil = "Escolha um perfil";
+    if (!termos) novosErros.termos = "Aceite os termos para continuar";
+
+    if (Object.keys(novosErros).length === 0) {
+      setCorBtn("green");
+    } else {
+      setCorBtn("#6c47ff");
+    }
+  }, [nome, email, psw, cpf, tel, perfil, termos]);
+
+  const handleSubmit = () => {
+    if (!validar()) return;
+    setCarregando(true);
+    setTimeout(() => {
+      setCarregando(false);
+      Alert.alert(" Cadastro realizado!", `Bem-vindo(a), ${nome}!`);
+    }, 1500);
+  };
+  const Campo = ({ label, erro, children }) => (
+    <View style={styles.campoWrapper}>
+      <Text style={styles.label}>{label}</Text>
+      {children}
+      {erro ? <Text style={styles.erro}>{erro}</Text> : null}
     </View>
+  );
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.titulo}> Cadastro</Text>
+        {/* Nome */}
+        <Campo label="Nome completo" erro={erros.nome}>
+          <TextInput
+            placeholder="Ex: Maria Silva"
+            value={nome}
+            onChangeText={setNome}
+            returnKeyType="next"
+            onSubmitEditing={() => emailRef.current.focus()}
+            style={[styles.input, erros.nome && styles.inputErro]}
+          />
+        </Campo>
+        {/* E-mail */}
+        <Campo label="E-mail" erro={erros.email}>
+          <TextInput
+            ref={emailRef}
+            placeholder="maria@email.com"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            returnKeyType="next"
+            onSubmitEditing={() => cpfRef.current.focus()}
+            style={[styles.input, erros.email && styles.inputErro]}
+          />
+        </Campo>
+        <Campo label="Senha" erro={erros.senha}>
+          <View style={styles.senhaContainer}>
+            <TextInput
+              placeholder="Senha"
+              returnKeyType="next"
+              value={psw}
+              onChangeText={setPsw}
+              secureTextEntry={!showPsw}
+              style={[{ flex: 1, marginBottom: 0, ...styles.input }]}
+            />
+            <Text onPress={() => setShowPsw(!showPsw)} style={styles.olho}>
+              {showPsw ? "🙈" : "👁️"}
+            </Text>
+          </View>
+        </Campo>
+        {/* CPF */}
+        <Campo label="CPF" erro={erros.cpf}>
+          <TextInput
+            ref={cpfRef}
+            placeholder="000.000.000-00"
+            value={cpf}
+            onChangeText={(v) => setCpf(formatarCPF(v))}
+            keyboardType="numeric"
+            maxLength={14}
+            returnKeyType="next"
+            onSubmitEditing={() => telRef.current.focus()}
+            style={[styles.input, erros.cpf && styles.inputErro]}
+          />
+        </Campo>
+        {/* Telefone */}
+        <Campo label="Telefone" erro={erros.tel}>
+          <TextInput
+            ref={telRef}
+            placeholder="(11) 99999-9999"
+            value={tel}
+            onChangeText={(v) => setTel(formatarTel(v))}
+            keyboardType="phone-pad"
+            maxLength={15}
+            returnKeyType="done"
+            style={[styles.input, erros.tel && styles.inputErro]}
+          />
+        </Campo>
+        {/* Perfil */}
+        <Campo label="Perfil" erro={erros.perfil}>
+          <View style={styles.chips}>
+            {PERFIS.map((op) => (
+              <TouchableOpacity
+                key={op}
+                onPress={() => setPerfil(op)}
+                style={[styles.chip, perfil === op && styles.chipAtivo]}
+              >
+                <Text style={{ color: perfil === op ? "#fff" : "#555" }}>
+                  {op}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Campo>
+        {/* Termos */}
+        <View style={styles.termosRow}>
+          <Switch
+            value={termos}
+            onValueChange={setTermos}
+            trackColor={{ false: "#ccc", true: "#6c47ff" }}
+          />
+          <Text style={styles.termosText}>Aceito os termos de uso</Text>
+        </View>
+        {erros.termos ? <Text style={styles.erro}>{erros.termos}</Text> : null}
+        {/* Botão */}
+        <TouchableOpacity
+          style={[
+            styles.botao,
+            carregando && { opacity: 0.6 },
+            { backgroundColor: corBtn },
+          ]}
+          onPress={handleSubmit}
+          disabled={carregando}
+        >
+          <Text style={styles.botaoTexto}>
+            {carregando ? "Enviando..." : "Criar conta"}
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0a0a0a',
-    padding: 20,
+    padding: 24,
+    paddingBottom: 60,
+    backgroundColor: "#f5f5f5",
   },
-  avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 3,
-    borderColor: '#E1306C',
-    marginBottom: 16,
+  titulo: {
+    fontSize: 28,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 24,
+    color: "#333",
   },
-  nome: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 8,
+  campoWrapper: { marginBottom: 16 },
+  label: { fontSize: 14, fontWeight: "600", color: "#444", marginBottom: 6 },
+  input: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 16,
   },
-  bio: {
-    width: '70%',
-    fontSize: 14,
-    color: '#aaa',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  stats: {
-    backgroundColor: '#1a1a1a',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  stat: {
-    color: '#fff',
-    fontSize: 14,
-  },
-  url: {
-    color: '#3355ee',
+  senhaContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 4,
     fontSize: 18,
-    textAlign: 'center'
   },
-  urlContainer: {
-    width: '100%',
-    marginTop: 16,
-  }
+  inputErro: { borderColor: "red" },
+  erro: { color: "red", fontSize: 12, marginTop: 4 },
+  chips: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
+  chip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#eee",
+  },
+  chipAtivo: { backgroundColor: "#6c47ff" },
+  termosRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 4,
+  },
+  termosText: { fontSize: 15, color: "#333" },
+  botao: {
+    backgroundColor: "#6c47ff",
+    borderRadius: 10,
+    padding: 16,
+    alignItems: "center",
+    marginTop: 24,
+  },
+  botaoTexto: { color: "#fff", fontSize: 18, fontWeight: "bold" },
 });
